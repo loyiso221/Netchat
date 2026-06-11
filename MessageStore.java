@@ -1,26 +1,93 @@
-import java.io.FileWriter;
-import java.io.IOException;
+import java.util.ArrayList;
 
 public class MessageStore {
 
-    private static final String FILE_NAME = "messages.json";
+    public static ArrayList<String> sentMessages = new ArrayList<>();
+    public static ArrayList<String> disregardedMessages = new ArrayList<>();
+    public static ArrayList<StoredMessage> storedMessages = new ArrayList<>();
 
-    public static void storeMessage(Message msg) {
+    // STORE MESSAGE
+    public static void storeMessage(Message msg, String user) {
 
-        String json;
-        json = "{\n" +
-                "\"MessageID\":\"" + msg.getMessageID() + "\",\n" +
-                "\"Recipient\":\"" + msg.getRecipient() + "\",\n" +
-                "\"Message\":\"" + msg.getMessageText() + "\",\n" +
-                "\"MessageHash\":\"" + msg.getMessageHash() + "\"\n" +
-                "}\n";
+        String formatted =
+                "From: " + user +
+                "\nTo: " + msg.getRecipient() +
+                "\nMessage: " + msg.getMessageText();
 
-        try (FileWriter writer = new FileWriter(FILE_NAME, true)) {
+        sentMessages.add(formatted);
 
-            writer.write(json);
-            writer.write("\n");
+        storedMessages.add(
+                new StoredMessage(
+                        msg.getMessageID(),
+                        user,
+                        msg.getRecipient(),
+                        msg.getMessageText()
+                )
+        );
+    }
 
-        } catch (IOException e) {
+    public static void loadMessages() {
+        // optional for now
+    }
+
+    public static String getLongestMessage() {
+
+        if (storedMessages.isEmpty()) return "No messages found";
+
+        String longest = "";
+
+        for (StoredMessage msg : storedMessages) {
+            if (msg.getMessage().length() > longest.length()) {
+                longest = msg.getMessage();
+            }
         }
+
+        return longest;
+    }
+
+    public static StoredMessage searchByID(String id) {
+
+        for (StoredMessage msg : storedMessages) {
+            if (msg.getMessageID().equals(id)) {
+                return msg;
+            }
+        }
+
+        return null;
+    }
+
+    public static ArrayList<StoredMessage> searchByRecipient(String recipient) {
+
+        ArrayList<StoredMessage> results = new ArrayList<>();
+
+        for (StoredMessage msg : storedMessages) {
+            if (msg.getRecipient().equals(recipient)) {
+                results.add(msg);
+            }
+        }
+
+        return results;
+    }
+
+    public static boolean deleteByHash(String hash) {
+
+        return storedMessages.removeIf(
+                msg -> msg.getMessageID().equals(hash)
+        );
+    }
+
+    public static String generateReport() {
+
+        return """
+               === QUICKCHAT REPORT ===
+
+               Sent Messages: %d
+               Stored Messages: %d
+               Disregarded Messages: %d
+               """.formatted(
+                sentMessages.size(),
+                storedMessages.size(),
+                disregardedMessages.size()
+        );
     }
 }
