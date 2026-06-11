@@ -1,135 +1,107 @@
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 
 public class HOME extends JFrame {
 
+    private final String currentUser;
 
     public HOME(String username) {
 
+        this.currentUser = username;
+
         setTitle("QuickChat Home");
-        setSize(500, 350);
+        setSize(550, 400);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(240,240,240));
 
         // HEADER
         JPanel header = new JPanel();
-        header.setBackground(new Color(33,150,243));
+        header.setBackground(new Color(33, 150, 243));
 
-        JLabel title = new JLabel("Welcome to QuickChat");
+        JLabel title = new JLabel("Welcome To QuickChat");
         title.setForeground(Color.WHITE);
         title.setFont(new Font("Arial", Font.BOLD, 20));
-
         header.add(title);
 
-        // CENTER
-        JPanel center = new JPanel(new GridLayout(3,1,10,10));
-        center.setBorder(BorderFactory.createEmptyBorder(20,20,20,20));
-        center.setBackground(new Color(240,240,240));
-
-        JLabel welcome = new JLabel("Welcome, " + username);
-        welcome.setHorizontalAlignment(SwingConstants.CENTER);
+        // WELCOME LABEL
+        JLabel welcome = new JLabel("Welcome, " + username, SwingConstants.CENTER);
         welcome.setFont(new Font("Segoe UI", Font.BOLD, 18));
+
+        // BUTTON PANEL
+        JPanel buttonPanel = new JPanel(new GridLayout(4, 1, 10, 10));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         JButton sendBtn = new JButton("Send Messages");
         JButton recentBtn = new JButton("Show Recently Sent");
+        JButton storedBtn = new JButton("Stored Messages");
         JButton quitBtn = new JButton("Quit");
 
         styleButton(sendBtn);
         styleButton(recentBtn);
+        styleButton(storedBtn);
         styleButton(quitBtn);
 
-        center.add(sendBtn);
-        center.add(recentBtn);
-        center.add(quitBtn);
+        buttonPanel.add(sendBtn);
+        buttonPanel.add(recentBtn);
+        buttonPanel.add(storedBtn);
+        buttonPanel.add(quitBtn);
 
         mainPanel.add(header, BorderLayout.NORTH);
         mainPanel.add(welcome, BorderLayout.CENTER);
-        mainPanel.add(center, BorderLayout.SOUTH);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         add(mainPanel);
 
-        // SEND MESSAGE
+        // ACTIONS
         sendBtn.addActionListener(e -> sendMessages());
-
-        // RECENT MESSAGES
-        recentBtn.addActionListener(e ->
-                JOptionPane.showMessageDialog(this,
-                        "Coming Soon.")
-        );
-
-        // QUIT
+        recentBtn.addActionListener(e -> showRecentMessages());
+        storedBtn.addActionListener(e -> storedMessagesMenu());
         quitBtn.addActionListener(e -> System.exit(0));
     }
 
-    // SEND MESSAGES METHOD
+    // ================= SEND MESSAGES =================
     private void sendMessages() {
 
-        String input = JOptionPane.showInputDialog(
-                this,
-                "How many messages do you want to send?"
-        );
+        String input = JOptionPane.showInputDialog(this,
+                "How many messages do you want to send?");
+
+        if (input == null) return;
 
         int total;
 
         try {
-
             total = Integer.parseInt(input);
-
         } catch (NumberFormatException e) {
-
-            JOptionPane.showMessageDialog(this,
-                    "Invalid number.");
-
+            JOptionPane.showMessageDialog(this, "Invalid number.");
             return;
         }
 
         for (int i = 0; i < total; i++) {
 
-            String recipient = JOptionPane.showInputDialog(
-                    this,
-                    "Enter recipient number:"
-            );
+            String recipient = JOptionPane.showInputDialog(this, "Enter recipient number:");
+            if (recipient == null) return;
 
-            String text = JOptionPane.showInputDialog(
-                    this,
-                    "Enter your message:"
-            );
+            String text = JOptionPane.showInputDialog(this, "Enter your message:");
+            if (text == null) return;
 
-            Message msg = new Message(
-                    i + 1,
-                    recipient,
-                    text
-            );
+            Message msg = new Message(i + 1, recipient, text);
 
-            // MESSAGE LENGTH
             if (!msg.validMessageLength()) {
-
-                JOptionPane.showMessageDialog(this,
-                        "Please enter a message of less than 250 characters.");
-
+                JOptionPane.showMessageDialog(this, "Message exceeds 250 characters.");
                 i--;
                 continue;
             }
 
-            // RECIPIENT VALIDATION
             if (!msg.checkRecipientCell()) {
-
-                JOptionPane.showMessageDialog(this,
-                        "Cell phone number incorrectly formatted or does not contain international code.");
-
+                JOptionPane.showMessageDialog(this, "Invalid cell number format.");
                 i--;
                 continue;
             }
 
-            // OPTIONS
-            String[] options = {
-                    "Send Message",
-                    "Disregard Message",
-                    "Store Message"
-            };
+            String[] options = {"Send Message", "Disregard Message", "Store Message"};
 
             int choice = JOptionPane.showOptionDialog(
                     this,
@@ -145,42 +117,156 @@ public class HOME extends JFrame {
             switch (choice) {
 
                 case 0 -> {
-                    MessageStore.storeMessage(msg);
-
+                    MessageStore.storeMessage(msg, currentUser);
                     JOptionPane.showMessageDialog(this,
-                            "Message successfully sent\n\n"
-                                    + msg.printMessages());
+                            "Message Sent\n\n" + msg.printMessages());
                 }
 
-                case 1 -> JOptionPane.showMessageDialog(this,
-                            "Message disregarded.");
+                case 1 -> {
+                    MessageStore.disregardedMessages.add(msg.getMessageText());
+                    JOptionPane.showMessageDialog(this, "Message Disregarded");
+                }
 
                 case 2 -> {
-                    MessageStore.storeMessage(msg);
-
-                    JOptionPane.showMessageDialog(this,
-                            "Message successfully stored.");
+                    MessageStore.storeMessage(msg, currentUser);
+                    JOptionPane.showMessageDialog(this, "Message Stored Successfully");
                 }
             }
         }
 
         JOptionPane.showMessageDialog(this,
-                "Total messages sent: "
-                        + Message.returnTotalMessages());
+                "Total Messages Sent: " + Message.returnTotalMessages());
     }
 
-    // BUTTON STYLE
-    private void styleButton(JButton button) {
+    // ================= RECENT MESSAGES =================
+    private void showRecentMessages() {
 
+        if (MessageStore.sentMessages.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No messages available.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        for (String msg : MessageStore.sentMessages) {
+            sb.append(msg).append("\n\n");
+        }
+
+        JOptionPane.showMessageDialog(this, sb.toString());
+    }
+
+    // ================= STORED MENU =================
+    private void storedMessagesMenu() {
+
+        MessageStore.loadMessages();
+
+        String[] options = {
+                "Display Sender & Recipient",
+                "Longest Message",
+                "Search Message ID",
+                "Search Recipient",
+                "Delete Message",
+                "Full Report"
+        };
+
+        int choice = JOptionPane.showOptionDialog(
+                this,
+                "Stored Messages",
+                "QuickChat",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        switch (choice) {
+            case 0 -> displaySenders();
+            case 1 -> displayLongestMessage();
+            case 2 -> searchMessageID();
+            case 3 -> searchRecipient();
+            case 4 -> deleteMessage();
+            case 5 -> fullReport();
+        }
+    }
+
+    private void displaySenders() {
+
+        StringBuilder sb = new StringBuilder();
+
+        for (StoredMessage msg : MessageStore.storedMessages) {
+            sb.append("Sender: ").append(msg.getSender())
+              .append("\nRecipient: ").append(msg.getRecipient())
+              .append("\n\n");
+        }
+
+        JOptionPane.showMessageDialog(this, sb.toString());
+    }
+
+    private void displayLongestMessage() {
+        JOptionPane.showMessageDialog(this, MessageStore.getLongestMessage());
+    }
+
+    private void searchMessageID() {
+
+        String id = JOptionPane.showInputDialog(this, "Enter Message ID");
+        if (id == null) return;
+
+        StoredMessage msg = MessageStore.searchByID(id);
+
+        if (msg != null) {
+            JOptionPane.showMessageDialog(this,
+                    "Recipient: " + msg.getRecipient() +
+                    "\nMessage: " + msg.getMessage());
+        } else {
+            JOptionPane.showMessageDialog(this, "Message Not Found");
+        }
+    }
+
+    private void searchRecipient() {
+
+        String recipient = JOptionPane.showInputDialog(this, "Enter Recipient");
+        if (recipient == null) return;
+
+        ArrayList<StoredMessage> results =
+                MessageStore.searchByRecipient(recipient);
+
+        if (results.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No messages found.");
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        for (StoredMessage msg : results) {
+            sb.append(msg.getMessage()).append("\n\n");
+        }
+
+        JOptionPane.showMessageDialog(this, sb.toString());
+    }
+
+    private void deleteMessage() {
+
+        String hash = JOptionPane.showInputDialog(this, "Enter Message Hash");
+        if (hash == null) return;
+
+        boolean deleted = MessageStore.deleteByHash(hash);
+
+        JOptionPane.showMessageDialog(this,
+                deleted ? "Message Deleted Successfully" : "Message Not Found");
+    }
+
+    private void fullReport() {
+        JOptionPane.showMessageDialog(this, MessageStore.generateReport());
+    }
+
+    // ================= STYLE =================
+    private void styleButton(JButton button) {
         button.setFocusPainted(false);
-        button.setBackground(new Color(33,150,243));
+        button.setBackground(new Color(33, 150, 243));
         button.setForeground(Color.WHITE);
         button.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        button.setPreferredSize(new Dimension(150,40));
     }
-    // </editor-fold>
-    // Variables declaration - do not modify
-    // End of variables declaration
 
 
     @SuppressWarnings("unchecked")
