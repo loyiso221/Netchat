@@ -22,30 +22,20 @@ public final class Message {
         totalMessages++;
     }
 
-    // Generate random 10 digit ID
     private void generateMessageID() {
 
         Random random = new Random();
 
         long number = 1000000000L +
-                (long)(random.nextDouble() * 9000000000L);
+                (long) (random.nextDouble() * 9000000000L);
 
         messageID = String.valueOf(number);
     }
 
-    // Check message ID length
-    public boolean checkMessageID() {
-        return messageID.length() <= 10;
-    }
-
-    // Check recipient cellphone
     public boolean checkRecipientCell() {
-
-        return recipient.startsWith("+")
-                && recipient.length() <= 13;
+        return recipient.startsWith("+") && recipient.length() <= 13;
     }
 
-    // Create message hash
     public String createMessageHash() {
 
         String[] words = messageText.split(" ");
@@ -55,36 +45,31 @@ public final class Message {
 
         messageHash =
                 messageID.substring(0, 2)
-                + ":" +
-                messageNumber
-                + ":" +
-                firstWord
-                + lastWord;
+                        + ":"
+                        + messageNumber
+                        + ":"
+                        + firstWord
+                        + lastWord;
 
         return messageHash;
     }
 
-    // Validate message length
     public boolean validMessageLength() {
         return messageText.length() <= 250;
     }
 
-    // Print message
     public String printMessages() {
 
-        return
-                "Message ID: " + messageID +
+        return "Message ID: " + messageID +
                 "\nMessage Hash: " + messageHash +
                 "\nRecipient: " + recipient +
                 "\nMessage: " + messageText;
     }
 
-    // Return total messages
     public static int returnTotalMessages() {
         return totalMessages;
     }
 
-    // Getters
     public String getMessageID() {
         return messageID;
     }
